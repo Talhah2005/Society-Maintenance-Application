@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Society Maintenance App",
+    "slug": "society-maintenance-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FF6B6B"
+      }
+    }
+  }
+}
