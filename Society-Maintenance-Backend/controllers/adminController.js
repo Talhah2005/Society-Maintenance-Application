@@ -468,6 +468,45 @@ export const getCollectedPayments = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+// Add this to adminController.js after the deleteTeamMember function
+
+export const updateTeamMemberRecord = async (req, res) => {
+  const { teamMemberId } = req.params;
+  const updateData = req.body;
+  try {
+    const teamMember = await TeamMember.findById(teamMemberId);
+    if (!teamMember) {
+      return res.status(404).json({ msg: 'Team member not found' });
+    }
+
+    // Fields that can be updated
+    const allowedFields = ['name', 'email', 'phoneNumber', 'nic'];
+    
+    // Update only allowed fields
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        teamMember[field] = updateData[field];
+      }
+    });
+
+    await teamMember.save();
+
+    res.status(200).json({ 
+      msg: 'Team member updated successfully', 
+      teamMember: {
+        id: teamMember._id,
+        name: teamMember.name,
+        email: teamMember.email,
+        phoneNumber: teamMember.phoneNumber,
+        nic: teamMember.nic,
+        verified: teamMember.verified
+      }
+    });
+  } catch (error) {
+    console.error('Error updating team member:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
 
 // NEW: Get detailed dues overview for clean Dues section
 export const getDuesOverview = async (req, res) => {
@@ -507,6 +546,7 @@ export const getDuesOverview = async (req, res) => {
         });
       }
     });
+    
     
     // Sort by highest dues first
     usersWithPendingDues.sort((a, b) => b.totalDues - a.totalDues);

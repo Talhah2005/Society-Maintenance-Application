@@ -1,4 +1,4 @@
-// routes/adminRoutes.js - Complete with new endpoints
+// routes/adminRoutes.js - Complete with update team endpoint
 import express from 'express';
 import { 
   getAllUsers, 
@@ -7,6 +7,7 @@ import {
   deleteUser,
   deleteTeamMember,
   updateUserRecord,
+  updateTeamMemberRecord,  // NEW
   getAdminDashboardStats,
   getYearlyReport,
   getAvailableYears,
@@ -32,13 +33,14 @@ router.put('/update-user/:userId', updateUserRecord);
 router.get('/team-members', getAllTeamMembers);
 router.post('/add-team', addTeamMember);
 router.delete('/delete-team/:teamMemberId', deleteTeamMember);
+router.put('/update-team/:teamMemberId', updateTeamMemberRecord);  // NEW
 
 // Dashboard and reports
 router.get('/dashboard-stats', getAdminDashboardStats);
 router.get('/yearly-report/:year', getYearlyReport);
 router.get('/available-years', getAvailableYears);
 
-// NEW: Detailed payment reports
+// Detailed payment reports
 router.get('/month-details/:year/:month', getMonthPaymentDetails);
 router.get('/collected-payments/:year', getCollectedPayments);
 

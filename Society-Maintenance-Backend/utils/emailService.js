@@ -1,4 +1,4 @@
-// utils/emailService.js - Updated with web verification URL
+// utils/emailService.js - Updated with payment confirmation email
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -54,7 +54,7 @@ export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Send email verification email - UPDATED TO USE WEB URL
+// Send email verification email
 export const sendVerificationEmail = async (userEmail, userName, verificationToken) => {
   try {
     if (!transporter) {
@@ -65,8 +65,7 @@ export const sendVerificationEmail = async (userEmail, userName, verificationTok
       throw new Error('Email service not configured');
     }
 
-    // Use backend URL for web-based verification
-    const backendUrl = process.env.BACKEND_URL || 'http://192.168.1.3:5001';
+    const backendUrl = process.env.BACKEND_URL || 'http://192.168.1.9:5001';
     const verificationUrl = `${backendUrl}/api/auth/verify-email-web?token=${verificationToken}`;
 
     const mailOptions = {
@@ -161,6 +160,133 @@ export const sendVerificationEmail = async (userEmail, userName, verificationTok
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Error sending verification email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// NEW: Send payment confirmation email
+export const sendPaymentConfirmationEmail = async (userEmail, userName, month, amount, paidDate) => {
+  try {
+    if (!transporter) {
+      transporter = createTransporter();
+    }
+
+    if (!transporter) {
+      throw new Error('Email service not configured');
+    }
+
+    const formattedDate = new Date(paidDate).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const formattedTime = new Date(paidDate).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const mailOptions = {
+      from: {
+        name: 'Society Management System',
+        address: process.env.EMAIL_USER
+      },
+      to: userEmail,
+      subject: `Maintenance Charges Paid - ${month}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Payment Confirmation</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <div style="background-color: #4CAF50; padding: 40px 20px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Payment Received</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9;">Maintenance Charges Confirmation</p>
+            </div>
+            
+            <div style="padding: 40px 20px;">
+              <h2 style="color: #2C2C2E; margin: 0 0 20px 0;">Dear ${userName},</h2>
+              
+              <p style="color: #2C2C2E; line-height: 1.6; margin: 0 0 20px 0;">
+                Your maintenance charges for the month of <strong>${month}</strong> have been successfully paid.
+              </p>
+              
+              <div style="background-color: #f8f8f9; border-radius: 12px; padding: 20px; margin: 30px 0;">
+                <h3 style="color: #2C2C2E; margin: 0 0 15px 0; font-size: 18px;">Payment Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 10px 0; color: #8E8E93; font-size: 14px;">Month:</td>
+                    <td style="padding: 10px 0; color: #2C2C2E; font-weight: 600; text-align: right;">${month}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 0; color: #8E8E93; font-size: 14px;">Amount:</td>
+                    <td style="padding: 10px 0; color: #2C2C2E; font-weight: 600; text-align: right;">PKR ${amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 0; color: #8E8E93; font-size: 14px;">Date:</td>
+                    <td style="padding: 10px 0; color: #2C2C2E; font-weight: 600; text-align: right;">${formattedDate}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 0; color: #8E8E93; font-size: 14px;">Time:</td>
+                    <td style="padding: 10px 0; color: #2C2C2E; font-weight: 600; text-align: right;">${formattedTime}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="background-color: #E8F5E9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #2C2C2E; font-size: 14px; line-height: 1.6;">
+                  <strong>Thank you for your timely payment!</strong><br>
+                  Your payment has been recorded in our system. You can view this transaction in your dashboard.
+                </p>
+              </div>
+              
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                If you have any questions regarding this payment, please contact the management office.
+              </p>
+            </div>
+            
+            <div style="background-color: #f8f8f9; padding: 20px; text-align: center; border-top: 1px solid #e5e5e7;">
+              <p style="color: #8E8E93; font-size: 14px; margin: 0;">
+                Best regards,<br>
+                <strong>Society Management Team</strong>
+              </p>
+              <p style="color: #8E8E93; font-size: 12px; margin: 10px 0 0 0;">
+                © 2025 Society Management System. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Maintenance Charges Paid
+        
+        Dear ${userName},
+        
+        Your maintenance charges for the month of ${month} have been successfully paid on ${formattedDate} at ${formattedTime}.
+        
+        Payment Details:
+        - Month: ${month}
+        - Amount: PKR ${amount.toLocaleString()}
+        - Date: ${formattedDate}
+        - Time: ${formattedTime}
+        
+        Thank you for your timely payment!
+        
+        Best regards,
+        Society Management Team
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Payment confirmation email sent successfully to:', userEmail);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
     return { success: false, error: error.message };
   }
 };

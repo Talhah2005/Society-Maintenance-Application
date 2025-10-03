@@ -1,4 +1,4 @@
-// server.js - Updated with payment routes
+// server.js - Updated with notification routes
 import express from 'express';
 import { connectDB } from './config/db.js';
 import cors from 'cors';
@@ -10,6 +10,7 @@ import userRoutes from './routes/userRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -58,6 +60,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n========================================`);
   console.log(`🚀 Server running on:`);
   console.log(`   Local:   http://localhost:${PORT}`);
-  console.log(`   Network: http://192.168.1.3:${PORT}`);
+  console.log(`   Network: http://192.168.1.9:${PORT}`);
   console.log(`========================================\n`);
 });

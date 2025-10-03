@@ -1,6 +1,8 @@
-// controllers/teamController.js - Updated to exclude admin users and use registration-based tracking
+// controllers/teamController.js - Updated with notifications and email confirmation
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import Collection from '../models/Collection.js';
+import { sendPaymentConfirmationEmail } from '../utils/emailService.js';
 
 const MONTHLY_FEE = 3000;
 
@@ -142,7 +144,7 @@ export const getTeamUsers = async (req, res) => {
   }
 };
 
-// Mark bill as paid and update collections
+// Mark bill as paid, create notification, and send email
 export const markBillAsPaid = async (req, res) => {
   const { userId, month } = req.body;
 
@@ -178,6 +180,8 @@ export const markBillAsPaid = async (req, res) => {
       }
     }
 
+    const paidDate = new Date();
+
     // Update payment status
     let paymentStatus = user.paymentStatus || [];
     const existingPayment = paymentStatus.find(p => p.month === month);
@@ -187,13 +191,13 @@ export const markBillAsPaid = async (req, res) => {
         return res.status(400).json({ msg: 'Payment already marked as paid' });
       }
       existingPayment.status = 'Paid';
-      existingPayment.paidDate = new Date();
+      existingPayment.paidDate = paidDate;
       existingPayment.amount = MONTHLY_FEE;
     } else {
       paymentStatus.push({
         month,
         status: 'Paid',
-        paidDate: new Date(),
+        paidDate,
         amount: MONTHLY_FEE
       });
     }
@@ -205,17 +209,52 @@ export const markBillAsPaid = async (req, res) => {
     const [monthName, year] = month.split(' ');
     await updateCollections(monthName, parseInt(year), MONTHLY_FEE);
 
-    // Send WhatsApp message (placeholder for now)
-    const message = `Hi ${user.name}, your maintenance bill for ${month} (PKR ${MONTHLY_FEE.toLocaleString()}) has been received. Payment confirmed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}. Thank you!`;
-    
-    console.log(`WhatsApp message to ${user.whatsappNumber || user.phoneNumber}: ${message}`);
+    // Create notification for the user
+    try {
+      const notification = new Notification({
+        userId: user._id,
+        type: 'payment',
+        title: 'Payment Received',
+        message: `You have successfully paid your maintenance charges for the month of ${month} on ${paidDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${paidDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`,
+        month,
+        amount: MONTHLY_FEE,
+        paidDate,
+        isRead: false
+      });
+
+      await notification.save();
+      console.log(`Notification created for user ${user.name} (${user.email})`);
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Don't fail the payment if notification creation fails
+    }
+
+    // Send payment confirmation email
+    try {
+      const emailResult = await sendPaymentConfirmationEmail(
+        user.email,
+        user.name,
+        month,
+        MONTHLY_FEE,
+        paidDate
+      );
+
+      if (emailResult.success) {
+        console.log(`Payment confirmation email sent to ${user.email}`);
+      } else {
+        console.error(`Failed to send payment confirmation email to ${user.email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending payment confirmation email:', emailError);
+      // Don't fail the payment if email sending fails
+    }
 
     res.status(200).json({ 
-      msg: 'Payment marked as paid and collections updated',
+      msg: 'Payment marked as paid, notification created, and confirmation email sent',
       payment: {
         month,
         amount: MONTHLY_FEE,
-        paidDate: new Date()
+        paidDate
       }
     });
   } catch (error) {
